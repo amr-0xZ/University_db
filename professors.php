@@ -1,5 +1,142 @@
 // Back-end CRUD functions, >>Omar's job<<
+<?php
+require_once 'conn.php';
 
+// Initialize variables
+$name = $email = $phone = $office = $hours = $dob = $gender = $hire_date = $salary = $rank = $department = '';
+$error = '';
+$success = '';
+
+// CRUD Operations
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // Create Professor
+    if (isset($_POST['add_professor'])) {
+        $name = $_POST['name'];
+        $email = $_POST['email'];
+        $phone = $_POST['phone'];
+        $office = $_POST['office'];
+        $hours = $_POST['hours'];
+        $dob = $_POST['dob'];
+        $gender = $_POST['gender'];
+        $hire_date = $_POST['hire_date'];
+        $salary = $_POST['salary'];
+        $rank = $_POST['rank'];
+        $department = $_POST['department'];
+
+        if (empty($name) || empty($email) || empty($department)) {
+            $error = 'Name, email and department are required!';
+        } else {
+            $stmt = $conn->prepare("INSERT INTO professor (first_name, last_name, email, phone_number, office_location, office_hours, date_of_birth, gender, hire_date, salary, `rank`, department_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            
+            // Split name into first and last
+            $name_parts = explode(' ', $name, 2);
+            $first_name = $name_parts[0];
+            $last_name = isset($name_parts[1]) ? $name_parts[1] : '';
+            
+            $stmt->bind_param("sssssssssdss", $first_name, $last_name, $email, $phone, $office, $hours, $dob, $gender, $hire_date, $salary, $rank, $department);
+            
+            if ($stmt->execute()) {
+                $success = 'Professor added successfully!';
+                // Clear form
+                $name = $email = $phone = $office = $hours = $dob = $gender = $hire_date = $salary = $rank = $department = '';
+            } else {
+                $error = 'Error adding professor: ' . $conn->error;
+            }
+            $stmt->close();
+        }
+    }
+
+    // Update Professor
+    if (isset($_POST['update_professor'])) {
+        $id = $_POST['id'];
+        $name = $_POST['name'];
+        $email = $_POST['email'];
+        $phone = $_POST['phone'];
+        $office = $_POST['office'];
+        $hours = $_POST['hours'];
+        $dob = $_POST['dob'];
+        $gender = $_POST['gender'];
+        $hire_date = $_POST['hire_date'];
+        $salary = $_POST['salary'];
+        $rank = $_POST['rank'];
+        $department = $_POST['department'];
+
+        if (empty($name) || empty($email) || empty($department)) {
+            $error = 'Name, email and department are required!';
+        } else {
+            // Split name into first and last
+            $name_parts = explode(' ', $name, 2);
+            $first_name = $name_parts[0];
+            $last_name = isset($name_parts[1]) ? $name_parts[1] : '';
+            
+            $stmt = $conn->prepare("UPDATE professor SET first_name=?, last_name=?, email=?, phone_number=?, office_location=?, office_hours=?, date_of_birth=?, gender=?, hire_date=?, salary=?, `rank`=?, department_id=? WHERE professor_id=?");
+            $stmt->bind_param("sssssssssdssi", $first_name, $last_name, $email, $phone, $office, $hours, $dob, $gender, $hire_date, $salary, $rank, $department, $id);
+            
+            if ($stmt->execute()) {
+                $success = 'Professor updated successfully!';
+            } else {
+                $error = 'Error updating professor: ' . $conn->error;
+            }
+            $stmt->close();
+        }
+    }
+}
+
+// Delete Professor
+if (isset($_GET['delete'])) {
+    $id = $_GET['delete'];
+    $stmt = $conn->prepare("DELETE FROM professor WHERE professor_id=?");
+    $stmt->bind_param("i", $id);
+    
+    if ($stmt->execute()) {
+        $success = 'Professor deleted successfully!';
+    } else {
+        $error = 'Error deleting professor: ' . $conn->error;
+    }
+    $stmt->close();
+}
+
+// Get Professor for editing
+if (isset($_GET['edit'])) {
+    $id = $_GET['edit'];
+    $stmt = $conn->prepare("SELECT * FROM professor WHERE professor_id=?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $professor = $result->fetch_assoc();
+    $stmt->close();
+    
+    if ($professor) {
+        $name = $professor['first_name'] . ' ' . $professor['last_name'];
+        $email = $professor['email'];
+        $phone = $professor['phone_number'];
+        $office = $professor['office_location'];
+        $hours = $professor['office_hours'];
+        $dob = $professor['date_of_birth'];
+        $gender = $professor['gender'];
+        $hire_date = $professor['hire_date'];
+        $salary = $professor['salary'];
+        $rank = $professor['rank'];
+        $department = $professor['department_id'];
+    }
+}
+
+// Get all professors
+$professors = [];
+$stmt = $conn->prepare("SELECT p.*, d.department_name FROM professor p JOIN department d ON p.department_id = d.department_id ORDER BY p.last_name, p.first_name");
+$stmt->execute();
+$result = $stmt->get_result();
+$professors = $result->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
+
+// Get all departments for dropdown
+$departments = [];
+$stmt = $conn->prepare("SELECT * FROM department ORDER BY department_name");
+$stmt->execute();
+$result = $stmt->get_result();
+$departments = $result->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
+?>
 
 
 
